@@ -63,7 +63,7 @@ def extend_contour_line(img, contour, bullseye, length):
     # find a rectangle that strictly bounds the contour
     bounding_rect = cv2.minAreaRect(contour)
     box = cv2.boxPoints(bounding_rect)
-    box = np.int0(box)
+    box = np.int32(box)
     A = box[0]
     B = box[1]
     C = box[2]
