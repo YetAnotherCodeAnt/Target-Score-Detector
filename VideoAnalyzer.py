@@ -115,20 +115,26 @@ class VideoAnalyzer:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(outputName, fourcc, 24.0, frame_size)
 
+        i = 0
         while True:
+            i += 1
+            i %= 20
             ret, frame = self.cap.read()
 
             if ret:
+                if i != 0:
+                    continue
+
                 bullseye, scoreboard = self._analyze_frame(frame)
-                
+
                 # increase reputation of consistent hits
                 # or add them as new candidates
                 for hit in scoreboard:
                     hitsMngr.sort_hit(hit, 30, 15)
-                
+
                 # decrease reputation of inconsistent hits
                 hitsMngr.discharge_hits()
-                
+
                 # stabilize all hits according to the slightly shifted bull'seye point
                 if type(bullseye) != type(None):
                     hitsMngr.shift_hits(bullseye)
@@ -136,12 +142,12 @@ class VideoAnalyzer:
                 # reference hit groups
                 candidate_hits = hitsMngr.get_hits(hitsMngr.CANDIDATE)
                 verified_hits = hitsMngr.get_hits(hitsMngr.VERIFIED)
-                    
+
                 # extract grouping data
                 grouping_contour = grouper.create_group_polygon(frame, verified_hits)
                 has_group = type(grouping_contour) != type(None)
                 grouping_diameter = grouper.measure_grouping_diameter(grouping_contour) if has_group else 0
-                    
+
                 # write meta data on frame
                 sketcher.draw_data_block(frame)
                 verified_scores = [h.score for h in verified_hits]
@@ -149,26 +155,28 @@ class VideoAnalyzer:
                 sketcher.type_arrows_amount(frame, arrows_amount, (0x0,0x0,0xff))
                 sketcher.type_total_score(frame, sum(verified_scores), arrows_amount * 10, (0x0,189,62))
                 sketcher.type_grouping_diameter(frame, grouping_diameter, (0xff,133,14))
-                
+
                 # mark hits and grouping
                 sketcher.draw_grouping(frame, grouping_contour)
                 sketcher.mark_hits(frame, candidate_hits, foreground=(0x0,0x0,0xff),
                                    diam=2, withOutline=False, withScore=False)
-                
+
                 sketcher.mark_hits(frame, verified_hits, foreground=(0x0,0xff,0x0),
                                    diam=5, withOutline=True, withScore=True)
-                
+
                 # display
                 frame_resized = cv2.resize(frame, (1153, 648))
                 cv2.imshow('Analysis', frame_resized)
-                
+
                 # write frame to output file
                 out.write(frame)
-                
+
                 if cv2.waitKey(1) & 0xff == 27:
                     break
             else:
                 print('Video stream is over.')
+                import time
+                time.sleep(100000)
                 break
                 
         # close window properly
